@@ -17,4 +17,16 @@ The gridworld problem is then extended to include multiple robots on the grid at
 
 Now, with multiple robots, it is a good idea to avoid collisions. Therefore, a negative reward (penalty) R_C is added to the system such that for every robot that occupies the same location as at least one other robot, R_C is added to the total reward for that state.
 
-To test value and policy iteration for the multi-agent problem, run `python gridworld_multi_agent.py test`. In its current state, value iteration takes 72 iterations, and each iteration takes 12-13 seconds. Interestingly, policy iteration has not yet been shown to converge, but takes at least 2400 iterations and several hours. This is significantly slower than the single-agent problem, which completes both value iteration and policy iteration in a matter of seconds.
+To test value and policy iteration for the multi-agent problem, run `python gridworld_multi_agent.py test`. Example results can be found in [two_agent_optimal_policies.txt](https://github.com/logan-hernandez/ice-cream-gridworld/blob/main/two_agent_optimal_policies.txt). To summarize, value iteration takes around 70 iterations and 12 minutes, while policy iteration takes less than 10 iterations and just a few minutes. Both methods result in the same policies, giving some verification of correctness.
+
+Policy and value lists are in a predictable order based on the possible states. For example, for 2 agents on a 5x5 grid, the following order of states corresponds to the order of values/actions.
+* Format: [(x_agent_1, y_agent_1), (x_agent_2, y_agent_2)]
+* [(0,0), (0,0)]
+* [(0,0), (0,1)]
+* [(0,0), (0,2)]
+* [(0,0), (0,3)]
+* [(0,0), (0,4)]
+* [(0,0), (1,0)]
+* ...
+* [(4,4), (4,3)]
+* [(4,4), (4,4)]
