@@ -1,10 +1,13 @@
 # MULTI-AGENT 
 
 import os
+import sys
 import numpy as np
+np.set_printoptions(threshold=sys.maxsize)
 import math
 from random import random
 import sys
+import time
 
 # example policy:
 # v < > v < 
@@ -50,7 +53,7 @@ class grid_world:
     self.state_space = [single_agent_state_space[indices] for indices in state_space_indices]
     
     self.values = np.zeros(len(self.state_space))
-    self.policy = np.zeros(len(self.state_space), dtype=object)
+    self.policy = np.array([np.zeros(self.n_agents, dtype=object)] * len(self.state_space))
     
   
   def state_index(self, state):
@@ -58,6 +61,7 @@ class grid_world:
     for agent in state:
       state_index *= len(self.grid)*len(self.grid[0])
       state_index += agent[0]*len(self.grid[0]) + agent[1]
+    # assert(np.array_equal(state, self.state_space[state_index]))
     return state_index
   
   # TODO --- DONE
@@ -172,12 +176,12 @@ class grid_world:
         for ns in range(len(next_states)):
           next_state = next_states[ns]
           p = probabilities[ns]
-          next_state_index = self.state_index(next_state)
           if p > 0:
+            next_state_index = self.state_index(next_state)
             expected_val += p * (self.calc_reward(state, a, next_state) + self.gamma*old_values[next_state_index])
         if expected_val > max_val:
-          best_a = a
           max_val = expected_val
+          best_a = a
       new_values[state_index] = max_val
       new_policy[state_index] = best_a
       
@@ -185,7 +189,7 @@ class grid_world:
     # memory allocation
     old_values = np.zeros(len(self.state_space))
     new_values = np.zeros(len(self.state_space))
-    new_policy = np.zeros(len(self.state_space), dtype=object)
+    new_policy = np.array([np.zeros(self.n_agents, dtype=object)] * len(self.state_space))
     
     max_diff = float('inf')
     i = 0
@@ -206,8 +210,11 @@ class grid_world:
     self.policy = new_policy
   
   
-  def policy_iteration(self, old_policy, new_policy, P_matrix, R_matrix):
-    # Policy Evaluation    
+  def policy_iteration(self, old_policy, new_policy, new_values):
+    # Policy Evaluation
+    P_matrix = np.zeros([len(self.state_space), len(self.state_space)])
+    R_matrix = np.zeros([len(self.state_space), len(self.state_space)])
+
     for state_index in range(len(self.state_space)):
       state = self.state_space[state_index]
       a = old_policy[state_index]
@@ -215,8 +222,8 @@ class grid_world:
       for ns in range(len(next_states)):
         next_state = next_states[ns]
         p = probabilities[ns]
-        next_state_index = self.state_index(next_state)
         if p > 0:
+          next_state_index = self.state_index(next_state)
           P_matrix[state_index][next_state_index] = p
           R_matrix[state_index][next_state_index] = self.calc_reward(state, a, next_state)
     
@@ -234,20 +241,20 @@ class grid_world:
         for ns in range(len(next_states)):
           next_state = next_states[ns]
           p = probabilities[ns]
-          next_state_index = self.state_index(next_state)
           if p > 0:
+            next_state_index = self.state_index(next_state)
             Q += p * (self.calc_reward(state, a, next_state) + self.gamma*V[next_state_index])
         if Q > max_Q:
           max_Q = Q
           best_a = a
+      new_values[state_index] = max_Q
       new_policy[state_index] = best_a
   
   def make_optimal_policy_from_PI(self):
     # memory allocation
-    old_policy = np.zeros(len(self.state_space), dtype=object)
-    new_policy = np.zeros(len(self.state_space), dtype=object)
-    P_matrix = np.zeros([len(self.state_space), len(self.state_space)])
-    R_matrix = np.zeros([len(self.state_space), len(self.state_space)])
+    old_policy = np.array([np.zeros(self.n_agents, dtype=object)] * len(self.state_space))
+    new_policy = np.array([np.zeros(self.n_agents, dtype=object)] * len(self.state_space))
+    new_values = np.zeros(len(self.state_space))
     
     # init random policy
     for state_index in range(len(self.state_space)):
@@ -255,7 +262,7 @@ class grid_world:
     
     i = 0
     while True:
-      self.policy_iteration(old_policy, new_policy, P_matrix, R_matrix)
+      self.policy_iteration(old_policy, new_policy, new_values)
       if np.array_equal(new_policy, old_policy):
         break
       # swap memory that old_policy and new_policy point to
@@ -266,7 +273,8 @@ class grid_world:
       i += 1
     
     print("Used {} policy iterations to find optimal policy".format(i))
-    self.policy_grid = new_policy
+    self.values = new_values
+    self.policy = new_policy
   
   def print_grid(self):
     new_grid = []
@@ -335,7 +343,9 @@ def main():
       print()
       
       print("Generating optimal policy using VI", flush=True)
+      start_time = time.time()
       grid.make_optimal_policy_from_VI()
+      print("Took {} seconds".format(time.time() - start_time))
       print("Policy:")
       print(grid.policy, flush=True)
       print("Values:")
@@ -346,7 +356,9 @@ def main():
       print()
       
       print("Generating optimal policy using PI", flush=True)
+      start_time = time.time()
       grid.make_optimal_policy_from_PI()
+      print("Took {} seconds".format(time.time() - start_time))
       print("Policy:")
       print(grid.policy, flush=True)
       print("Values:")
